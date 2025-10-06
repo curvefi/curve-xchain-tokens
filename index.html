@@ -149,6 +149,7 @@
                 <option value="Avalanche">Avalanche</option>
                 <option value="Base">Base</option>
                 <option value="BSC">BSC</option>
+                <option value="Etherlink">Etherlink</option>
                 <option value="Ethereum">Ethereum</option>
                 <option value="Fantom">Fantom</option>
                 <option value="Fraxtal">Fraxtal</option>
@@ -483,7 +484,7 @@
             <td>Custom Bridge (LayerZeroV1)</td>
             <td>~15 min</td>
             <td>~15 min</td>
-            <td></td>
+            <td><a href="https://crvhub.com/bridge">CRV Hub Bridge</a></td>
             <td><a href="https://app.crosscurve.fi/swap?inputChainId=1&inputToken=0x9996D0276612d23b35f90C51EE935520B3d7355B">CrossCurve</a></td>
         </tr>
         <tr>
@@ -550,6 +551,18 @@
             <td>~15 min</td>
             <td>~15 min</td>
             <td></td>
+            <td></td>
+        </tr>
+
+        <!-- Etherlink Chain -->
+        <tr>
+            <td>Etherlink</td>
+            <td><a href="https://etherlink.com/address/0x004A476B5B76738E34c86C7144554B9d34402F13">CRV</a></td>
+            <td class="total-supply" data-chain="etherlink" data-token="0x004A476B5B76738E34c86C7144554B9d34402F13">Loading...</td>
+            <td>Custom Bridge (LayerZeroV1)</td>
+            <td>~15 min</td>
+            <td>~15 min</td>
+            <td><a href="https://crvhub.com/bridge">CRV Hub Bridge</a></td>
             <td></td>
         </tr>
     </table>
@@ -667,7 +680,8 @@
             sonic: 'https://rpc.soniclabs.com',
             taiko: 'https://rpc.taiko.xyz',
             kava: 'https://evm.kava.io',
-            xdc: 'https://erpc.xinfin.network'
+            xdc: 'https://erpc.xinfin.network',
+            etherlink: 'https://node.mainnet.etherlink.com'
         };
 
         // ERC20 totalSupply function selector
@@ -685,7 +699,8 @@
             'Sonic': 'sonic',
             'Taiko': 'taiko',
             'Kava': 'kava',
-            'XDC': 'xdc'
+            'XDC': 'xdc',
+            'Etherlink': 'etherlink'
         };
 
         // Chain name to deployment data key mapping
@@ -703,7 +718,8 @@
             'Sonic': 'sonic',
             'Taiko': 'taiko',
             'Kava': 'kava',
-            'XDC': 'xdc'
+            'XDC': 'xdc',
+            'Etherlink': 'etherlink'
         };
 
         const chainIds = {
@@ -720,7 +736,8 @@
             'Sonic': 146,
             'Taiko': 42793,
             'Kava': 2222,
-            'XDC': 50
+            'XDC': 50,
+            'Etherlink': 42793
         };
 
         // Centralized token addresses cache
@@ -789,6 +806,9 @@
             },
             'XDC': {
                 'scrvUSD': '0x3d8EADb739D1Ef95dd53D718e4810721837c69c1'
+            },
+            'Etherlink': {
+                'CRV': '0x004A476B5B76738E34c86C7144554B9d34402F13'
             }
         };
 
@@ -808,7 +828,8 @@
             'Sonic': 'https://assets.coingecko.com/coins/images/38108/standard/200x200_Sonic_Logo.png',
             'Taiko': 'https://assets.coingecko.com/coins/images/38058/standard/icon.png',
             'Kava': 'https://assets.coingecko.com/coins/images/9761/small/kava.png',
-            'XDC': 'https://assets.coingecko.com/coins/images/2912/small/xdc-icon.png'
+            'XDC': 'https://assets.coingecko.com/coins/images/2912/small/xdc-icon.png',
+            'Etherlink': 'https://assets.coingecko.com/coins/images/2912/small/xdc-icon.png'
         };
 
         // Token name mapping (JSON uses lowercase keys)
@@ -833,7 +854,8 @@
             'sonic': 'https://sonicscan.org/token/',
             'taiko': 'https://taikoscan.xyz/token/',
             'kava': 'https://explorer.kava.io/token/',
-            'xdc': 'https://xdcscan.io/token/'
+            'xdc': 'https://xdcscan.io/token/',
+            'etherlink': 'https://explorer.etherlink.com/address/'
         };
 
 
