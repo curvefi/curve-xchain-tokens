@@ -1135,17 +1135,38 @@
         function formatNumber(num) {
             // Convert from wei (10^18) to human readable format
             const humanReadable = num / 1e18;
-            
+
+            // Helper to format with max 2 significant digits
+            const formatMax2Sig = (n) => {
+                if (!Number.isFinite(n)) return 'N/A';
+                if (n === 0) return '0';
+                const abs = Math.abs(n);
+                const sig = 2;
+                const order = Math.floor(Math.log10(abs)); // e.g., 987 -> 2
+                const scale = Math.pow(10, order - sig + 1);
+                const rounded = Math.round(n / scale) * scale;
+                const decimals = Math.max(0, sig - (order + 1));
+                let out = rounded.toFixed(decimals);
+                // Trim trailing zeros and dot
+                if (out.indexOf('.') !== -1) out = out.replace(/\.0+$/,'').replace(/\.$/,'');
+                // If result would appear as a 3+ digit integer (e.g., 640), prefer full integer digits
+                if (out.indexOf('.') === -1 && Math.abs(Number(out)) >= 100) {
+                    out = String(Math.round(n));
+                }
+                // Avoid negative zero
+                if (out === '-0') out = '0';
+                return out;
+            };
+
+            // Preserve human readable suffixes
             if (humanReadable >= 1e9) {
-                return (humanReadable / 1e9).toFixed(2) + 'B';
+                return formatMax2Sig(humanReadable / 1e9) + 'B';
             } else if (humanReadable >= 1e6) {
-                return (humanReadable / 1e6).toFixed(2) + 'M';
+                return formatMax2Sig(humanReadable / 1e6) + 'M';
             } else if (humanReadable >= 1e3) {
-                return (humanReadable / 1e3).toFixed(2) + 'K';
-            } else if (humanReadable >= 1) {
-                return humanReadable.toFixed(2);
+                return formatMax2Sig(humanReadable / 1e3) + 'K';
             } else {
-                return humanReadable.toFixed(6);
+                return formatMax2Sig(humanReadable);
             }
         }
         
