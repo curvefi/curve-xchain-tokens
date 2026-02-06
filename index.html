@@ -67,6 +67,53 @@
             font-style: italic;
             font-size: 0.9em;
         }
+        .rpc-settings {
+            margin: 10px 0 20px;
+            padding: 10px;
+            border: 1px solid #000;
+            background-color: #fff;
+        }
+        .rpc-settings summary {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .rpc-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .rpc-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .rpc-row label {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.85em;
+        }
+        .rpc-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .rpc-actions button {
+            font-family: monospace;
+            padding: 5px;
+            border: 1px solid #000;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .rpc-status {
+            font-size: 0.85em;
+        }
+        .rpc-note {
+            font-size: 0.85em;
+            font-style: italic;
+        }
         .hidden {
             display: none;
         }
@@ -178,6 +225,45 @@
             <input type="text" id="searchInput" placeholder="Search chains, tokens, bridges..." onkeyup="filterTable()">
         </div>
     </div>
+
+    <details class="rpc-settings">
+        <summary>RPC settings</summary>
+        <div class="rpc-grid">
+            <div class="rpc-row">
+                <label>
+                    DRPC key
+                    <input id="rpc-drpc-key" type="text" placeholder="Optional" autocomplete="off">
+                </label>
+                <label>
+                    Ankr key
+                    <input id="rpc-ankr-key" type="text" placeholder="Optional" autocomplete="off">
+                </label>
+                <label>
+                    Alchemy key
+                    <input id="rpc-alchemy-key" type="text" placeholder="Optional" autocomplete="off">
+                </label>
+            </div>
+            <div class="rpc-row">
+                <label>
+                    Provider
+                    <select id="rpc-provider">
+                        <option value="default">Default</option>
+                        <option value="drpc">DRPC</option>
+                        <option value="ankr">Ankr</option>
+                        <option value="alchemy">Alchemy</option>
+                    </select>
+                </label>
+                <div class="rpc-actions">
+                    <button type="button" id="rpc-apply">Apply</button>
+                    <button type="button" id="rpc-reset">Reset to default</button>
+                    <span class="rpc-status" id="rpc-status"></span>
+                </div>
+            </div>
+            <div class="rpc-note">
+                Keys are stored in your browser (localStorage). Only chains supported by the selected provider will switch; others stay on default endpoints.
+            </div>
+        </div>
+    </details>
 
     <table>
         <tr>
@@ -657,6 +743,30 @@
             // Add total supply columns to remaining rows
             addTotalSupplyColumns();
 
+            // Initialize RPC settings before first supply load
+            const initialRpcSettings = loadRpcSettings();
+            syncRpcForm(initialRpcSettings);
+            applyRpcSettings(initialRpcSettings, { refresh: false });
+
+            const rpcApply = document.getElementById('rpc-apply');
+            if (rpcApply) {
+                rpcApply.addEventListener('click', function() {
+                    const settings = readRpcForm();
+                    saveRpcSettings(settings);
+                    applyRpcSettings(settings);
+                });
+            }
+
+            const rpcReset = document.getElementById('rpc-reset');
+            if (rpcReset) {
+                rpcReset.addEventListener('click', function() {
+                    const defaults = getDefaultRpcSettings();
+                    localStorage.removeItem(RPC_STORAGE_KEY);
+                    syncRpcForm(defaults);
+                    applyRpcSettings(defaults);
+                });
+            }
+
             // Load deployment data and update token links
             loadDeploymentData();
 
@@ -665,7 +775,7 @@
         });
 
         // RPC endpoints for different chains
-        const rpcEndpoints = {
+        const defaultRpcEndpoints = {
             ethereum: 'https://eth.llamarpc.com',
             arbitrum: 'https://arb1.arbitrum.io/rpc',
             optimism: 'https://mainnet.optimism.io',
@@ -682,6 +792,146 @@
             xdc: 'https://erpc.xinfin.network',
             etherlink: 'https://node.mainnet.etherlink.com'
         };
+        const rpcEndpoints = { ...defaultRpcEndpoints };
+
+        const RPC_STORAGE_KEY = 'curve.rpc.settings';
+        const RPC_TEMPLATES = {
+            drpc: 'https://lb.drpc.live/{{chain}}/{{key}}',
+            ankr: 'https://rpc.ankr.com/{{chain}}/{{key}}',
+            alchemy: 'https://{{chain}}.g.alchemy.com/v2/{{key}}'
+        };
+        // Unsupported or unknown slugs are left null to keep default endpoints.
+        const RPC_CHAIN_SLUGS = {
+            ethereum: { drpc: 'eth', ankr: 'eth', alchemy: 'eth-mainnet' },
+            arbitrum: { drpc: 'arbitrum', ankr: 'arbitrum', alchemy: 'arb-mainnet' },
+            optimism: { drpc: 'optimism', ankr: 'optimism', alchemy: 'opt-mainnet' },
+            base: { drpc: 'base', ankr: 'base', alchemy: 'base-mainnet' },
+            polygon: { drpc: 'polygon', ankr: 'polygon', alchemy: 'polygon-mainnet' },
+            gnosis: { drpc: 'gnosis', ankr: 'gnosis', alchemy: null },
+            fantom: { drpc: 'fantom', ankr: 'fantom', alchemy: null },
+            bsc: { drpc: 'bsc', ankr: 'bsc', alchemy: null },
+            avalanche: { drpc: 'avalanche', ankr: 'avalanche', alchemy: null },
+            fraxtal: { drpc: 'fraxtal', ankr: null, alchemy: null },
+            sonic: { drpc: 'sonic', ankr: null, alchemy: null },
+            taiko: { drpc: 'taiko', ankr: null, alchemy: null },
+            kava: { drpc: 'kava', ankr: 'kava', alchemy: null },
+            xdc: { drpc: 'xdc', ankr: 'xdc', alchemy: null },
+            etherlink: { drpc: 'etherlink', ankr: null, alchemy: null }
+        };
+
+        function getDefaultRpcSettings() {
+            return {
+                provider: 'default',
+                drpcKey: '',
+                ankrKey: '',
+                alchemyKey: ''
+            };
+        }
+
+        function loadRpcSettings() {
+            try {
+                const raw = localStorage.getItem(RPC_STORAGE_KEY);
+                if (!raw) return getDefaultRpcSettings();
+                const parsed = JSON.parse(raw);
+                return {
+                    ...getDefaultRpcSettings(),
+                    ...parsed
+                };
+            } catch (error) {
+                return getDefaultRpcSettings();
+            }
+        }
+
+        function saveRpcSettings(settings) {
+            localStorage.setItem(RPC_STORAGE_KEY, JSON.stringify(settings));
+        }
+
+        function buildProviderUrl(provider, chainKey, key) {
+            if (!provider || !key) return null;
+            const slug = RPC_CHAIN_SLUGS[chainKey] && RPC_CHAIN_SLUGS[chainKey][provider];
+            if (!slug) return null;
+            const template = RPC_TEMPLATES[provider];
+            if (!template) return null;
+            return template.replace('{{chain}}', slug).replace('{{key}}', key);
+        }
+
+        function applyRpcSettings(settings, options = {}) {
+            const refresh = options.refresh !== false;
+            const endpoints = { ...defaultRpcEndpoints };
+            const provider = settings.provider || 'default';
+            const drpcKey = (settings.drpcKey || '').trim();
+            const ankrKey = (settings.ankrKey || '').trim();
+            const alchemyKey = (settings.alchemyKey || '').trim();
+
+            if (provider === 'drpc') {
+                Object.keys(endpoints).forEach((chainKey) => {
+                    const url = buildProviderUrl('drpc', chainKey, drpcKey);
+                    if (url) endpoints[chainKey] = url;
+                });
+            }
+
+            if (provider === 'ankr') {
+                Object.keys(endpoints).forEach((chainKey) => {
+                    const url = buildProviderUrl('ankr', chainKey, ankrKey);
+                    if (url) endpoints[chainKey] = url;
+                });
+            }
+
+            if (provider === 'alchemy') {
+                Object.keys(endpoints).forEach((chainKey) => {
+                    const url = buildProviderUrl('alchemy', chainKey, alchemyKey);
+                    if (url) endpoints[chainKey] = url;
+                });
+            }
+
+            Object.assign(rpcEndpoints, endpoints);
+
+            const statusEl = document.getElementById('rpc-status');
+            if (statusEl) {
+                let status = 'Using default RPCs';
+                if (provider === 'drpc') {
+                    status = drpcKey ? 'Using DRPC' : 'DRPC selected (missing key, using defaults)';
+                } else if (provider === 'ankr') {
+                    status = ankrKey ? 'Using Ankr' : 'Ankr selected (missing key, using defaults)';
+                } else if (provider === 'alchemy') {
+                    status = alchemyKey ? 'Using Alchemy' : 'Alchemy selected (missing key, using defaults)';
+                }
+                statusEl.textContent = status;
+            }
+
+            if (refresh) {
+                document.querySelectorAll('.total-supply').forEach((cell) => {
+                    cell.textContent = 'Loading...';
+                });
+                loadTotalSupplies();
+            }
+        }
+
+        function syncRpcForm(settings) {
+            const providerEl = document.getElementById('rpc-provider');
+            const drpcEl = document.getElementById('rpc-drpc-key');
+            const ankrEl = document.getElementById('rpc-ankr-key');
+            const alchemyEl = document.getElementById('rpc-alchemy-key');
+
+            if (providerEl) providerEl.value = settings.provider || 'default';
+            if (drpcEl) drpcEl.value = settings.drpcKey || '';
+            if (ankrEl) ankrEl.value = settings.ankrKey || '';
+            if (alchemyEl) alchemyEl.value = settings.alchemyKey || '';
+        }
+
+        function readRpcForm() {
+            const providerEl = document.getElementById('rpc-provider');
+            const drpcEl = document.getElementById('rpc-drpc-key');
+            const ankrEl = document.getElementById('rpc-ankr-key');
+            const alchemyEl = document.getElementById('rpc-alchemy-key');
+
+            return {
+                provider: providerEl ? providerEl.value : 'default',
+                drpcKey: drpcEl ? drpcEl.value.trim() : '',
+                ankrKey: ankrEl ? ankrEl.value.trim() : '',
+                alchemyKey: alchemyEl ? alchemyEl.value.trim() : ''
+            };
+        }
 
         // ERC20 totalSupply function selector
         const totalSupplySelector = '0x18160ddd';
